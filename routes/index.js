@@ -9,6 +9,10 @@ const multerS3 = require('multer-s3');
 const multer = require('multer')
 const AWS = require('aws-sdk');
 const Blockcluster = require('blockcluster');
+const ethUtil = require('ethereumjs-util');
+const sigUtil =  require('eth-sig-util');
+const jwt = require('jsonwebtoken');
+const express_jwt = require('express-jwt')
 
 router.use(bodyParser.urlencoded({ extended: true }))
 router.use(bodyParser.urlencoded({ extended: true }))
@@ -185,6 +189,115 @@ router.post('/video/get', async (req,res) => {
 	});
 
 	res.send({data: video,success: true})
+
+})
+
+router.post('/auth', (req,res,next) => {
+   
+        const { signature, publicAddress } = req.body;
+        if (!signature || !publicAddress)
+          return res
+            .status(400)
+            .send({ success: false , error: 'Request should have signature and publicAddress' }); 
+        return (
+          db.User_Details.findOne({ where: { publicAddress } })
+            .then(user => {
+              if (!user)
+                return res.status(401).send({success: false});
+              return user;
+            })
+            
+            .then(user => {
+              const msg = `I am signing my one-time nonce: ${user.nonce}`;
+      
+              const msgBufferHex = ethUtil.bufferToHex(Buffer.from(msg, 'utf8'));
+              const address = sigUtil.recoverPersonalSignature({data: msgBufferHex, sig: signature})
+      
+              if (address.toLowerCase() === publicAddress.toLowerCase()) {
+                return user;
+              } else {
+                return res
+                  .status(401)
+                  .send({ success: false,error: 'Signature verification failed' });
+              }
+            })
+            
+            .then(user => {
+              user.nonce = Math.floor(Math.random() * 10000);
+              return user.save();
+            })
+            
+            .then(
+              user =>
+                new Promise((resolve, reject) =>
+                  jwt.sign(
+                    {
+                      payload: {
+                        id: user.id,
+                        publicAddress
+                      }
+                    },
+                    "asdfgh", // jwt secret
+                    null,
+                    (err, token) => {
+                      if (err) {
+                        return reject(err);
+                      }
+                      return resolve(token);
+                    }
+                  )
+                )
+            )
+            .then(accessToken => res.json({ accessToken }))
+            .catch(next)
+        );
+
+})
+
+router.get('/users',(req,res,next) => {
+
+console.log(req.query.publicAddress)
+
+  return db.User_Details.find({publicAddress: req.query.publicAddress})
+    .then(function(users){
+        if(!users) {
+            return res.send({users: []})
+        }
+        console.log(users)
+        res.send({users: users})
+    })
+    .catch(next);
+})
+
+router.post('/users',(req,res,next) => {
+    db.User_Details.create(req.body)
+        .then(user => res.json(user))
+        .catch(next);
+})
+
+router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
+
+    if (req.user.payload.id !== +req.params.userId) {
+        return res.status(401).send({ error: 'You can can only access yourself' });
+      }
+      return User.findById(req.params.userId)
+        .then(user => {
+          Object.assign(user, req.body);
+          return user.save();
+        })
+        .then(user => res.json(user))
+        .catch(next);
+
+})
+
+router.post('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res) => {
+
+    if (req.user.payload.id !== +req.params.userId) {
+        return res.status(401).send({ error: 'You can can only access yourself',success:false });
+      }
+    return db.User_Details.findById(req.params.userId)
+    .then(user => res.json(user))
+    .catch(next);
 
 })
 

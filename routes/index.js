@@ -193,14 +193,15 @@ router.post('/video/get', async (req,res) => {
 })
 
 router.post('/auth', (req,res,next) => {
-   
         const { signature, publicAddress } = req.body;
-        if (!signature || !publicAddress)
-          return res
+        if (!signature || !publicAddress) {
+            return res
             .status(400)
-            .send({ success: false , error: 'Request should have signature and publicAddress' }); 
+            .send({ success: false , error: 'Request should have signature and publicAddress' });
+        }
+           
         return (
-          db.User_Details.findOne({ where: { publicAddress } })
+          db.User_Details.findOne({publicAddress:  publicAddress })
             .then(user => {
               if (!user)
                 return res.status(401).send({success: false});
@@ -248,7 +249,7 @@ router.post('/auth', (req,res,next) => {
                   )
                 )
             )
-            .then(accessToken => res.json({ accessToken }))
+            .then(accessToken => res.send({token:  accessToken }))
             .catch(next)
         );
 

@@ -244,12 +244,16 @@ router.post('/auth', (req,res,next) => {
                       if (err) {
                         return reject(err);
                       }
+                      
                       return resolve(token);
                     }
                   )
                 )
             )
-            .then(accessToken => res.send({token:  accessToken }))
+            .then(accessToken => { 
+                console.log("token: " + accessToken) ;
+                return res.send({token:  accessToken }) 
+            })
             .catch(next)
         );
 
@@ -278,6 +282,8 @@ router.post('/users',(req,res,next) => {
 
 router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
 
+    console.log("User finogn")
+
     if (req.user.payload.id !== +req.params.userId) {
         return res.status(401).send({ error: 'You can can only access yourself' });
       }
@@ -287,6 +293,23 @@ router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) =
           return user.save();
         })
         .then(user => res.json(user))
+        .catch(next);
+
+})
+
+router.get('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
+
+    console.log(req.headers)
+
+    if (req.user.payload.id !== req.params.userId) {
+        console.log("no u")
+        return res.status(401).send({ error: 'You can can only access yourself' });
+      }
+      return db.User_Details.findById(req.params.userId)
+        .then(user => {
+          console.log(user)
+          res.send({data: user})
+        })
         .catch(next);
 
 })

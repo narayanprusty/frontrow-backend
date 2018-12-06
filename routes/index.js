@@ -251,7 +251,6 @@ router.post('/auth', (req,res,next) => {
                 )
             )
             .then(accessToken => { 
-                console.log("token: " + accessToken) ;
                 return res.send({token:  accessToken }) 
             })
             .catch(next)
@@ -274,15 +273,24 @@ console.log(req.query.publicAddress)
     .catch(next);
 })
 
-router.post('/users',(req,res,next) => {
+router.post('/users',async (req,res,next) => {
+
+    let userMetamaskAddress = req.body.publicAddress //fetch it from metamask
+    console.log("userMetamaskAddress: " + userMetamaskAddress);
+    
+    await node.callAPI('assets/issueSoloAsset', {
+	    assetName: 'Users',
+	    fromAccount: node.getWeb3().eth.accounts[0],
+	    toAccount: node.getWeb3().eth.accounts[0],
+	    identifier: userMetamaskAddress
+    });
+
     db.User_Details.create(req.body)
         .then(user => res.json(user))
         .catch(next);
 })
 
 router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
-
-    console.log("User finogn")
 
     if (req.user.payload.id !== +req.params.userId) {
         return res.status(401).send({ error: 'You can can only access yourself' });
@@ -298,8 +306,6 @@ router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) =
 })
 
 router.get('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
-
-    console.log(req.headers)
 
     if (req.user.payload.id !== req.params.userId) {
         console.log("no u")

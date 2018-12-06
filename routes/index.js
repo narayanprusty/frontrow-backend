@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const db = require('../db/model');
-const path = require('path');
 const cors = require('cors');
 const multerS3 = require('multer-s3');
 const multer = require('multer')
@@ -66,18 +64,20 @@ router.post('/user/add', async (req,res) => {
 
 });
 
-router.post('/user/update', async (req,res) => {
+router.post('/user/update',express_jwt({ secret: "asdfgh" }),
+    async (req,res) => {
 
-    let userMetamaskAddress = req.body.metamaskid;
+    var payload = req.user.payload;
 
     await node.callAPI('assets/updateAssetInfo', {
 	    assetName: 'Users',
 	    fromAccount: node.getWeb3().eth.accounts[0],
-	    identifier: userMetamaskAddress,
+	    identifier: payload.publicAddress,
 			public: {
+                username: req.body.username,
 				earned: req.body.earned, //how much user has earned watching videos
                 age: req.body.age,
-                country: req.body.country,
+                location: req.body.location,
                 interests: JSON.stringify(req.body.interests)
 		  }
     });
@@ -86,10 +86,49 @@ router.post('/user/update', async (req,res) => {
 
 });
 
-router.post('/user/get', async(req,res) => {
+router.post('/user/get',
+ async(req,res) => {
 
     const users = await node.callAPI('assets/search', {
 		assetName: "Users",
+	});
+
+	res.send({data: users,success: true})
+
+})
+
+router.post('/user/get/:publicAddress',
+    async(req,res) => {
+
+    try {
+
+        var publicAddress = req.params.publicAddress
+
+        console.log("add: " + parseFloat(publicAddress) )
+
+        const users = await node.callAPI('assets/search', {
+            assetName: "Users",
+            uniqueIdentifier: parseFloat(publicAddress)
+        });
+        
+        await console.log("User: " + users)
+        await res.send({data: users,success: true})
+    } catch(e) {
+        console.error(e);
+        res.send({success: false})
+    }
+
+})
+
+router.post('/user/getViaToken/:publicAddress',express_jwt({ secret: "asdfgh" }),
+async(req,res) => {
+
+    var payload = req.user.payload;
+    console.log("sds: " + parseInt(payload.publicAddress))
+
+    const users = await node.callAPI('assets/search', {
+        assetName: "Users",
+        uniqueIdentifier: parseInt(payload.publicAddress)
 	});
 
 	res.send({data: users,success: true})
@@ -260,14 +299,11 @@ router.post('/auth', (req,res,next) => {
 
 router.get('/users',(req,res,next) => {
 
-console.log(req.query.publicAddress)
-
   return db.User_Details.find({publicAddress: req.query.publicAddress})
     .then(function(users){
         if(!users) {
             return res.send({users: []})
         }
-        console.log(users)
         res.send({users: users})
     })
     .catch(next);
@@ -276,7 +312,6 @@ console.log(req.query.publicAddress)
 router.post('/users',async (req,res,next) => {
 
     let userMetamaskAddress = req.body.publicAddress //fetch it from metamask
-    console.log("userMetamaskAddress: " + userMetamaskAddress);
     
     await node.callAPI('assets/issueSoloAsset', {
 	    assetName: 'Users',
@@ -308,12 +343,10 @@ router.patch('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) =
 router.get('/users/:userId',express_jwt({ secret: "asdfgh" }),(req,res,next) => {
 
     if (req.user.payload.id !== req.params.userId) {
-        console.log("no u")
         return res.status(401).send({ error: 'You can can only access yourself' });
       }
       return db.User_Details.findById(req.params.userId)
         .then(user => {
-          console.log(user)
           res.send({data: user})
         })
         .catch(next);

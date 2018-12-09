@@ -201,6 +201,16 @@ router.post('/video/add', async(req,res) => {
 
 router.post('/video/update', async(req,res) => {
 
+    /*
+        {
+    "url": "https://frontrow-blockcluster.s3.us-east-2.amazonaws.com/1544380531671-526888.jpg",
+    "id": "",
+    "title": "Title",
+    "metamaskId": "" ,
+    "views": 0
+}
+    */
+
     let video_id = req.body.id;
     let userMetamaskAddress = req.body.metamaskid;
 
@@ -212,12 +222,12 @@ router.post('/video/update', async(req,res) => {
           totalViews: req.body.views, //how many time video has been played
           imageURL: req.body.url,
           uploader: userMetamaskAddress, //user metamask id,
-          title: req.body.id.title,
+          title: req.body.title,
           publishedOn: (Date.now()).toString()
         }
     });
 
-    res.send({success: true})
+    await res.send({success: true})
 
 })
 
@@ -227,7 +237,7 @@ router.post('/video/get', async (req,res) => {
 		assetName: "Videos",
 	});
 
-	res.send({data: video,success: true})
+	res.send({data: videos,success: true})
 
 })
 

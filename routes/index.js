@@ -231,6 +231,24 @@ router.post('/video/get', async (req,res) => {
 
 })
 
+router.post('/video/get/:vid',async(req,res) => {
+    try {
+
+        var vid = req.params.vid
+        console.log(vid);
+        const video = await node.callAPI('assets/search', {
+            assetName: "Videos",
+            uniqueIdentifier: parseInt(vid) 
+        });
+        
+        await console.log("Video: " + video)
+        await res.send({data: video,success: true})
+    } catch(e) {
+        console.error(e);
+        res.send({success: false})
+    }
+})
+
 router.post('/auth', (req,res,next) => {
         const { signature, publicAddress } = req.body;
         if (!signature || !publicAddress) {

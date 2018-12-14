@@ -190,39 +190,29 @@ router.post('/video/add', async(req,res) => {
     let video_id = (Date.now()).toString()
 
     await node.callAPI('assets/issueSoloAsset', {
-	    assetName: 'Videos',
-	    fromAccount: node.getWeb3().eth.accounts[0],
-	    toAccount: node.getWeb3().eth.accounts[0],
-	    identifier: video_id
+        assetName: 'Videos',
+        fromAccount: node.getWeb3().eth.accounts[0],
+        toAccount: node.getWeb3().eth.accounts[0],
+        identifier: video_id
     });
     
-    res.send({success: true})
+    await res.send({success: true,vid: video_id})
 })
 
-router.post('/video/update', async(req,res) => {
-
-    /*
-        {
-    "url": "https://frontrow-blockcluster.s3.us-east-2.amazonaws.com/1544380531671-526888.jpg",
-    "id": "",
-    "title": "Title",
-    "metamaskId": "" ,
-    "views": 0
-}
-    */
+router.post('/video/update',express_jwt({ secret: "asdfgh" }), async(req,res) => {
 
     let video_id = req.body.id;
-    let userMetamaskAddress = req.body.metamaskid;
-
+    
     await node.callAPI('assets/updateAssetInfo', {
         assetName: 'Videos',
         fromAccount: node.getWeb3().eth.accounts[0],
         identifier: video_id,
         public: {
-          totalViews: req.body.views, //how many time video has been played
-          imageURL: req.body.url,
-          uploader: userMetamaskAddress, //user metamask id,
+          totalViews: 0, //how many time video has been played
+          imageURL: req.body.imageURL,
+          uploader: req.user.payload.publicAddress, //user metamask id,
           title: req.body.title,
+          video: req.body.videoURL,
           publishedOn: (Date.now()).toString()
         }
     });
@@ -232,7 +222,7 @@ router.post('/video/update', async(req,res) => {
 })
 
 router.post('/video/get', async (req,res) => {
-
+    console.log("cc")
     const videos = await node.callAPI('assets/search', {
 		assetName: "Videos",
 	});

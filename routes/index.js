@@ -221,6 +221,23 @@ router.post('/video/update',express_jwt({ secret: "asdfgh" }), async(req,res) =>
 
 })
 
+router.post('/view/update', async(req,res) => {
+
+    let video_id = req.body.id;
+    
+    await node.callAPI('assets/updateAssetInfo', {
+        assetName: 'Videos',
+        fromAccount: node.getWeb3().eth.accounts[0],
+        identifier: video_id,
+        public: {
+          totalViews: req.body.views,
+        }
+    });
+
+    await res.send({success: true})
+
+})
+
 router.post('/video/get', async (req,res) => {
     console.log("cc")
     const videos = await node.callAPI('assets/search', {

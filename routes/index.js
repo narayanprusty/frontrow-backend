@@ -57,7 +57,7 @@ router.post('/user/add', async (req, res) => {
         assetName: 'Users',
         fromAccount: node.getWeb3().eth.accounts[0],
         toAccount: node.getWeb3().eth.accounts[0],
-        identifier: userMetamaskAddress
+        identifier: userMetamaskAddress.slice(2)
     });
 
     res.send({ success: true })
@@ -72,7 +72,7 @@ router.post('/user/update', express_jwt({ secret: "asdfgh" }),
         await node.callAPI('assets/updateAssetInfo', {
             assetName: 'Users',
             fromAccount: node.getWeb3().eth.accounts[0],
-            identifier: payload.publicAddress,
+            identifier: payload.publicAddress.slice(2),
             public: {
                 username: req.body.username,
                 earned: req.body.earned, //how much user has earned watching videos
@@ -104,11 +104,11 @@ router.post('/user/get/:publicAddress',
 
             var publicAddress = req.params.publicAddress
 
-            console.log("add: " + parseFloat(publicAddress))
+            console.log("add: " + publicAddress.slice(2))
 
             const users = await node.callAPI('assets/search', {
                 assetName: "Users",
-                uniqueIdentifier: parseFloat(publicAddress)
+                uniqueIdentifier: publicAddress.slice(2)
             });
 
             await console.log("User: " + users)
@@ -124,11 +124,11 @@ router.post('/user/getViaToken/:publicAddress', express_jwt({ secret: "asdfgh" }
     async (req, res) => {
 
         var payload = req.user.payload;
-        console.log("sds: " + parseInt(payload.publicAddress))
+        console.log("sds: " + payload.publicAddress.slice(2))
 
         const users = await node.callAPI('assets/search', {
             assetName: "Users",
-            uniqueIdentifier: parseInt(payload.publicAddress)
+            uniqueIdentifier: payload.publicAddress.slice(2)
         });
 
         res.send({ data: users, success: true })
@@ -203,21 +203,30 @@ router.post('/video/update', express_jwt({ secret: "asdfgh" }), async (req, res)
 
     let video_id = req.body.id;
 
-    await node.callAPI('assets/updateAssetInfo', {
-        assetName: 'Videos',
-        fromAccount: node.getWeb3().eth.accounts[0],
-        identifier: video_id,
-        public: {
-            totalViews: 0, //how many time video has been played
-            imageURL: req.body.imageURL,
-            uploader: req.user.payload.publicAddress, //user metamask id,
-            title: req.body.title,
-            video: req.body.videoURL,
-            publishedOn: (Date.now()).toString()
-        }
-    });
+    var user = await db.User_Details.findOne({ publicAddress: req.user.payload.publicAddress });
 
-    await res.send({ success: true })
+    if (user) {
+
+        await node.callAPI('assets/updateAssetInfo', {
+            assetName: 'Videos',
+            fromAccount: node.getWeb3().eth.accounts[0],
+            identifier: video_id,
+            public: {
+                totalViews: 0, //how many time video has been played
+                imageURL: req.body.imageURL,
+                uploader: user.publicAddress, //user metamask id,
+                username: user.username,
+                title: req.body.title,
+                video: req.body.videoURL,
+                publishedOn: (Date.now()).toString()
+            }
+        });
+
+        await res.send({ success: true })
+    }
+    else {
+        res.status(400).send("User not found!");
+    }
 
 })
 
@@ -356,8 +365,9 @@ router.post('/users', async (req, res, next) => {
         assetName: 'Users',
         fromAccount: node.getWeb3().eth.accounts[0],
         toAccount: node.getWeb3().eth.accounts[0],
-        identifier: userMetamaskAddress.toString()
+        identifier: userMetamaskAddress.toString().slice(2)
     });
+
     req.body["username"] = userMetamaskAddress.toString();
     db.User_Details.create(req.body)
         .then(user => {

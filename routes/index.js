@@ -29,7 +29,7 @@ const aws_access_key_id = "AKIAICV5P2PGKZ2JF26Q"
 const aws_secret_access_key = "hxNxxoWJSS4PUAKLtMyuzum9SJAcYtzou2VisorL"
 const node = new Blockcluster.Dynamo({
     locationDomain: 'app-ap-south-1b.blockcluster.io', //enter your node's location domain
-    instanceId: 'fhvmdktd' //enter your instanceId
+    instanceId: 'qrdcrigi' //enter your instanceId
 });
 
 AWS.config.update({

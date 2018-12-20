@@ -242,6 +242,7 @@ router.post('/video/get', async (req, res) => {
     console.log("cc")
     const videos = await node.callAPI('assets/search', {
         assetName: "Videos",
+        status: "open",
     });
 
     res.send({ data: videos, success: true })

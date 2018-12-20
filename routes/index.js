@@ -10,7 +10,8 @@ const Blockcluster = require('blockcluster');
 const ethUtil = require('ethereumjs-util');
 const sigUtil = require('eth-sig-util');
 const jwt = require('jsonwebtoken');
-const express_jwt = require('express-jwt')
+const express_jwt = require('express-jwt');
+const shortid = require("shortid");
 
 router.use(bodyParser.urlencoded({ extended: true }))
 router.use(bodyParser.urlencoded({ extended: true }))
@@ -50,6 +51,8 @@ const upload = multer({
     })
 })
 
+//User Routes
+
 router.post('/user/add', async (req, res) => {
 
     let userMetamaskAddress = req.body.metamaskid //fetch it from metamask
@@ -64,76 +67,81 @@ router.post('/user/add', async (req, res) => {
 
 });
 
-router.post('/user/update', express_jwt({ secret: "asdfgh" }),
-    async (req, res) => {
+router.post('/user/update', express_jwt({ secret: "asdfgh" }), async (req, res) => {
 
-        var payload = req.user.payload;
+    var payload = req.user.payload;
 
-        await node.callAPI('assets/updateAssetInfo', {
-            assetName: 'Users',
-            fromAccount: node.getWeb3().eth.accounts[0],
-            identifier: payload.publicAddress.slice(2),
-            public: {
-                username: req.body.username,
-                earned: req.body.earned, //how much user has earned watching videos
-                age: req.body.age,
-                location: req.body.location,
-                interests: JSON.stringify(req.body.interests)
-            }
-        });
+    var user = await db.User_Details.findOne({ publicAddress: payload.publicAddress });
+    user["username"] = req.body.username;
+    await user.save();
 
-        res.send({ success: true })
+    //update username from all the video docs on blockcluster
 
+    await node.callAPI('assets/updateAssetInfo', {
+        assetName: 'Users',
+        fromAccount: node.getWeb3().eth.accounts[0],
+        identifier: payload.publicAddress.slice(2),
+        public: {
+            username: req.body.username,
+            earned: req.body.earned, //how much user has earned watching videos
+            age: req.body.age,
+            location: req.body.location,
+            interests: JSON.stringify(req.body.interests)
+        }
     });
 
-router.post('/user/get',
-    async (req, res) => {
+    res.send({ success: true })
+
+});
+
+router.post('/user/get', async (req, res) => {
+
+    const users = await node.callAPI('assets/search', {
+        assetName: "Users",
+    });
+
+    res.send({ data: users, success: true })
+
+})
+
+router.post('/user/get/:publicAddress', async (req, res) => {
+
+    try {
+
+        var publicAddress = req.params.publicAddress
+
+        console.log("add: " + publicAddress.slice(2))
 
         const users = await node.callAPI('assets/search', {
             assetName: "Users",
+            uniqueIdentifier: publicAddress.slice(2),
+            status: "open",
         });
 
-        res.send({ data: users, success: true })
+        await console.log("User: " + users)
+        await res.send({ data: users, success: true })
+    } catch (e) {
+        console.error(e);
+        res.send({ success: false })
+    }
 
-    })
+})
 
-router.post('/user/get/:publicAddress',
-    async (req, res) => {
+router.post('/user/getViaToken/:publicAddress', express_jwt({ secret: "asdfgh" }), async (req, res) => {
 
-        try {
+    var payload = req.user.payload;
+    console.log("sds: " + payload.publicAddress.slice(2))
 
-            var publicAddress = req.params.publicAddress
+    const users = await node.callAPI('assets/search', {
+        assetName: "Users",
+        uniqueIdentifier: payload.publicAddress.slice(2)
+    });
 
-            console.log("add: " + publicAddress.slice(2))
+    res.send({ data: users, success: true })
 
-            const users = await node.callAPI('assets/search', {
-                assetName: "Users",
-                uniqueIdentifier: publicAddress.slice(2)
-            });
+})
 
-            await console.log("User: " + users)
-            await res.send({ data: users, success: true })
-        } catch (e) {
-            console.error(e);
-            res.send({ success: false })
-        }
-
-    })
-
-router.post('/user/getViaToken/:publicAddress', express_jwt({ secret: "asdfgh" }),
-    async (req, res) => {
-
-        var payload = req.user.payload;
-        console.log("sds: " + payload.publicAddress.slice(2))
-
-        const users = await node.callAPI('assets/search', {
-            assetName: "Users",
-            uniqueIdentifier: payload.publicAddress.slice(2)
-        });
-
-        res.send({ data: users, success: true })
-
-    })
+//Ads routes
 
 router.post('/adv/add', async (req, res) => {
 
@@ -186,8 +194,10 @@ router.post('/adv/get', async (req, res) => {
 
 })
 
+//Video routes
+
 router.post('/video/add', async (req, res) => {
-    let video_id = (Date.now()).toString()
+    let video_id = shortid.generate();
 
     await node.callAPI('assets/issueSoloAsset', {
         assetName: 'Videos',
@@ -206,7 +216,7 @@ router.post('/video/update', express_jwt({ secret: "asdfgh" }), async (req, res)
     var user = await db.User_Details.findOne({ publicAddress: req.user.payload.publicAddress });
 
     if (user) {
-
+        var username = user.username.toString().substring(0, 2) == "0x" ? user.username.toString().substring(0, 2) : user.username.toString();
         await node.callAPI('assets/updateAssetInfo', {
             assetName: 'Videos',
             fromAccount: node.getWeb3().eth.accounts[0],
@@ -215,10 +225,11 @@ router.post('/video/update', express_jwt({ secret: "asdfgh" }), async (req, res)
                 totalViews: 0, //how many time video has been played
                 imageURL: req.body.imageURL,
                 uploader: user.publicAddress, //user metamask id,
-                username: user.username,
+                username: username,
                 title: req.body.title,
                 video: req.body.videoURL,
-                publishedOn: (Date.now()).toString()
+                publishedOn: (Date.now()).toString(),
+                show: true
             }
         });
 
@@ -249,12 +260,13 @@ router.post('/view/update', async (req, res) => {
 
 router.post('/video/get', async (req, res) => {
     console.log("cc")
-    const videos = await node.callAPI('assets/search', {
+    const video = await node.callAPI('assets/search', {
         assetName: "Videos",
         status: "open",
+        show: true,
     });
 
-    res.send({ data: videos, success: true })
+    res.send({ data: video, success: true })
 
 })
 
@@ -265,7 +277,7 @@ router.post('/video/get/:vid', async (req, res) => {
         console.log(vid);
         const video = await node.callAPI('assets/search', {
             assetName: "Videos",
-            uniqueIdentifier: parseInt(vid)
+            uniqueIdentifier: vid
         });
 
         await console.log("Video: " + video)
@@ -275,6 +287,8 @@ router.post('/video/get/:vid', async (req, res) => {
         res.send({ success: false })
     }
 })
+
+//Auth
 
 router.post('/auth', (req, res, next) => {
     const { signature, publicAddress } = req.body;
@@ -341,6 +355,8 @@ router.post('/auth', (req, res, next) => {
     );
 
 })
+
+//users routes
 
 router.get('/users', (req, res, next) => {
 
@@ -417,6 +433,8 @@ router.post('/users/:userId', express_jwt({ secret: "asdfgh" }), (req, res) => {
         .catch(next);
 
 })
+
+//upload api
 
 router.post('/api/upload', upload.single('video'), (req, res) => {
     res.send({ path: req.file.location })

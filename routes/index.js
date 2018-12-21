@@ -203,7 +203,7 @@ router.post('/video/add', async (req, res) => {
         assetName: 'Videos',
         fromAccount: node.getWeb3().eth.accounts[0],
         toAccount: node.getWeb3().eth.accounts[0],
-        identifier: video_id
+        identifier: video_id.toString()
     });
 
     await res.send({ success: true, vid: video_id })
@@ -220,7 +220,7 @@ router.post('/video/update', express_jwt({ secret: "asdfgh" }), async (req, res)
         await node.callAPI('assets/updateAssetInfo', {
             assetName: 'Videos',
             fromAccount: node.getWeb3().eth.accounts[0],
-            identifier: video_id,
+            identifier: video_id.toString(),
             public: {
                 totalViews: 0, //how many time video has been played
                 imageURL: req.body.imageURL,
@@ -248,7 +248,7 @@ router.post('/view/update', async (req, res) => {
     await node.callAPI('assets/updateAssetInfo', {
         assetName: 'Videos',
         fromAccount: node.getWeb3().eth.accounts[0],
-        identifier: video_id,
+        identifier: video_id.toString(),
         public: {
             totalViews: req.body.views,
         }
@@ -277,11 +277,11 @@ router.post('/video/get/:vid', async (req, res) => {
         console.log(vid);
         const video = await node.callAPI('assets/search', {
             assetName: "Videos",
-            uniqueIdentifier: vid
+            uniqueIdentifier: vid.toString()
         });
 
-        await console.log("Video: " + video)
-        await res.send({ data: video, success: true })
+        console.log("Video: " + video)
+        res.send({ data: video, success: video.length > 0 })
     } catch (e) {
         console.error(e);
         res.send({ success: false })

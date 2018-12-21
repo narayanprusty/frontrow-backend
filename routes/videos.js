@@ -35,7 +35,7 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
         var user = await db.User_Details.findOne({ publicAddress: req.user.payload.publicAddress });
 
         if (user) {
-            var username = user.username.toString().substring(0, 2) == "0x" ? user.username.toString().substring(0, 2) : user.username.toString();
+            var username = user.username.toString().substring(0, 2) == "0x" ? user.username.toString().substring(2) : user.username.toString();
             await node.callAPI('assets/updateAssetInfo', {
                 assetName: 'Videos',
                 fromAccount: node.getWeb3().eth.accounts[0],
@@ -43,8 +43,7 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                 public: {
                     totalViews: 0, //how many time video has been played
                     imageURL: req.body.imageURL,
-                    uploader: user.publicAddress, //user metamask id,
-                    username: username,
+                    uploader: user.publicAddress.slice(2), //user metamask id,
                     title: req.body.title,
                     video: req.body.videoURL,
                     publishedOn: (Date.now()).toString(),
@@ -96,6 +95,16 @@ router.post('/get', async (req, res) => {
                 publishedOn: -1
             }
         });
+
+        for (var i = 0; i < video.length; i++) {
+            var user = await node.callAPI('assets/search', {
+                assetName: "Users",
+                uniqueIdentifier: video[i].uploader
+            });
+            if(user.length > 0){
+                video[i]["username"] = user[0].username;
+            }
+        }
 
         res.send({ data: video, success: true })
     } catch (ex) {

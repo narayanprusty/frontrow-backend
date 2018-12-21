@@ -47,7 +47,7 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                 earned: req.body.earned, //how much user has earned watching videos
                 age: req.body.age,
                 location: req.body.location,
-                interests: JSON.stringify(req.body.interests)
+                interests: JSON.stringify(req.body.interests).toLowerCase()
             }
         });
 
@@ -84,7 +84,7 @@ router.post('/get/:publicAddress', async (req, res) => {
             status: "open",
         });
 
-        await console.log("User: " + users)
+        await console.log("User: " + users[0])
         await res.send({ data: users, success: true })
     } catch (e) {
         console.error(e);

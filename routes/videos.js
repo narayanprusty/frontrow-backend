@@ -11,6 +11,39 @@ const node = new Blockcluster.Dynamo({
     instanceId: config.BLOCKCLUSTER.instanceId
 });
 
+var videos = [];
+
+let interval = 20000;
+
+setInterval(async function () {
+    try {
+        console.log("Caching Videos!")
+        const video = await node.callAPI('assets/search', {
+            $query: {
+                assetName: "Videos",
+                status: "open",
+                show: true,
+            },
+            $sort: {
+                publishedOn: -1
+            }
+        });
+
+        for (var i = 0; i < video.length; i++) {
+            var user = await node.callAPI('assets/search', {
+                assetName: "Users",
+                uniqueIdentifier: video[i].uploader
+            });
+            if (user.length > 0) {
+                video[i]["username"] = user[0].username;
+            }
+        }
+        videos = video;
+    } catch (ex) {
+        console.log(ex);
+    }
+}, interval);
+
 router.post('/add', async (req, res) => {
     let video_id = shortid.generate();
     try {
@@ -36,7 +69,7 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
 
         if (user) {
             var username = user.username.toString().substring(0, 2) == "0x" ? user.username.toString().substring(2) : user.username.toString();
-            await node.callAPI('assets/updateAssetInfo', {
+            var video = await node.callAPI('assets/updateAssetInfo', {
                 assetName: 'Videos',
                 fromAccount: node.getWeb3().eth.accounts[0],
                 identifier: video_id.toString(),
@@ -51,6 +84,8 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                 }
             });
 
+            video["username"] = user.username;
+            videos.push(video);
             res.send({ success: true })
         }
         else {
@@ -84,27 +119,35 @@ router.post('/view/update', async (req, res) => {
 
 router.post('/get', async (req, res) => {
     try {
-        console.log("cc")
-        const video = await node.callAPI('assets/search', {
-            $query: {
-                assetName: "Videos",
-                status: "open",
-                show: true,
-            },
-            $sort: {
-                publishedOn: -1
-            }
-        });
-
-        for (var i = 0; i < video.length; i++) {
-            var user = await node.callAPI('assets/search', {
-                assetName: "Users",
-                uniqueIdentifier: video[i].uploader
+        const allVids = videos;
+        var video = [];
+        if (allVids.length > 0) {
+            video = allVids;
+        } else {
+            console.log("cc")
+            video = await node.callAPI('assets/search', {
+                $query: {
+                    assetName: "Videos",
+                    status: "open",
+                    show: true,
+                },
+                $sort: {
+                    publishedOn: -1
+                }
             });
-            if(user.length > 0){
-                video[i]["username"] = user[0].username;
+
+            for (var i = 0; i < video.length; i++) {
+                var user = await node.callAPI('assets/search', {
+                    assetName: "Users",
+                    uniqueIdentifier: video[i].uploader
+                });
+                if (user.length > 0) {
+                    video[i]["username"] = user[0].username;
+                }
             }
         }
+
+        videos = video;
 
         res.send({ data: video, success: true })
     } catch (ex) {

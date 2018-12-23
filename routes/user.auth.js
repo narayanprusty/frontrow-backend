@@ -84,8 +84,8 @@ router.post('/get/:publicAddress', async (req, res) => {
             status: "open",
         });
 
-        await console.log("User: " + users[0])
-        await res.send({ data: users, success: true })
+        console.log("User: " + users[0])
+        res.send({ data: users, success: true })
     } catch (e) {
         console.error(e);
         res.send({ e })

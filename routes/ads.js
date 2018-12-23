@@ -11,9 +11,10 @@ const node = new Blockcluster.Dynamo({
 });
 
 let ads = [];
-let interval = 1000;
+let interval = 10000;
 
 setInterval(async function () {
+    console.log("Caching ads!");
     var allAds = await node.callAPI('assets/search', {
         $query: {
             assetName: "Ads",
@@ -29,7 +30,6 @@ setInterval(async function () {
     }
 
     ads = adsWithBanner;
-    interval = 10000;
 }, interval);
 
 ApplyFilter = (ads, user) => {

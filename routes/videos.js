@@ -166,6 +166,19 @@ router.post('/get/:vid', async (req, res) => {
             uniqueIdentifier: vid.toString()
         });
 
+        if (video.length == 0) {
+            throw { message: "Video not found!" }
+        }
+
+        var user = await node.callAPI('assets/search', {
+            assetName: "Users",
+            uniqueIdentifier: video[0].uploader
+        });
+
+        if (user.length > 0) {
+            video[0]["username"] = user[0].username;
+        }
+
         console.log("Video: " + video)
         res.send({ data: video, success: video.length > 0 })
     } catch (e) {

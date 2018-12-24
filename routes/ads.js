@@ -166,6 +166,23 @@ router.post('/get', async (req, res) => {
     }
 });
 
+router.get('/adsStats', express_jwt({ secret: config.JWTSecret.secret }), async(req, res) => {
+    try{
+        var payload = req.user.payload;
+        var userMetamaskAddress = payload.publicAddress.slice(2);
+        var userAds = await node.callAPI('assets/search', {
+            assetName: 'Ads',
+            uploader: userMetamaskAddress.toString(),
+            status: "open"
+        });
+        
+        res.json(userAds);
+    }catch(ex){
+        console.log(ex);
+        res.sendStatus(400);
+    }
+})
+
 router.post('/getStats', async (req, res) => {
     try {
         var params = req.body;
@@ -222,6 +239,7 @@ router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (re
         var payload = req.user.payload;
         var userMetamaskAddress = payload.publicAddress.slice(2);
         if (req.body.adId && req.body.vId && userMetamaskAddress) {
+            //Update ad views
             var ad = await node.callAPI("assets/search", {
                 assetName: 'Ads',
                 uniqueIdentifier: req.body.adId,
@@ -241,6 +259,7 @@ router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (re
                 }
             });
 
+            //Update video earnings
             var video = await node.callAPI("assets/search", {
                 assetName: 'Videos',
                 uniqueIdentifier: req.body.vId,
@@ -260,6 +279,7 @@ router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (re
                 }
             });
 
+            //Update user earnings
             var user = await node.callAPI("assets/search", {
                 assetName: 'Users',
                 uniqueIdentifier: userMetamaskAddress,
@@ -271,9 +291,9 @@ router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (re
             var userEarning = user[0]["earning"] ? user[0].earning + (ad[0].costPerView * 0.7) : (ad[0].costPerView * 0.7);
 
             await node.callAPI('assets/updateAssetInfo', {
-                assetName: 'Videos',
+                assetName: 'Users',
                 fromAccount: node.getWeb3().eth.accounts[0],
-                identifier: video[0].uniqueIdentifier,
+                identifier: userMetamaskAddress,
                 public: {
                     earning: userEarning
                 }

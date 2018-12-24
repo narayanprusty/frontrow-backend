@@ -103,6 +103,7 @@ router.post('/publish', express_jwt({ secret: config.JWTSecret.secret }), async 
                 costPerView: req.body.costPerView, //how much advertiser pays per view
                 filter: req.body.filter,
                 bannerUrl: req.body.bannerUrl,
+                views: 0,
                 uploader: userMetamaskAddress.slice(2) //user metamask id
             }
         });
@@ -115,33 +116,38 @@ router.post('/publish', express_jwt({ secret: config.JWTSecret.secret }), async 
 });
 
 router.get('/banner', express_jwt({ secret: config.JWTSecret.secret }), async (req, res) => {
-    var payload = req.user.payload;
-    var userMetamaskAddress = payload.publicAddress.slice(2);
+    try {
+        var payload = req.user.payload;
+        var userMetamaskAddress = payload.publicAddress.slice(2);
 
-    var user = await node.callAPI('assets/search', {
-        $query: {
-            assetName: 'Users',
-            uniqueIdentifier: userMetamaskAddress,
-            status: "open",
+        var user = await node.callAPI('assets/search', {
+            $query: {
+                assetName: 'Users',
+                uniqueIdentifier: userMetamaskAddress,
+                status: "open",
+            }
+        });
+
+        var adCollection = ads;
+
+        if (user.length > 0) {
+            var filteredAds = ApplyFilter(adCollection, user);
+
+            var final = filteredAds.length > 0 ? filteredAds : adCollection;
+            var min = 0;
+            var max = final.length - 1;
+            var random = Math.floor(Math.random() * (+max - +min)) + +min;
+            res.json(final[random]);
         }
-    });
-
-    var adCollection = ads;
-
-    if (user.length > 0) {
-        var filteredAds = ApplyFilter(adCollection, user);
-
-        var final = filteredAds.length > 0 ? filteredAds : adCollection;
-        var min = 0;
-        var max = final.length - 1;
-        var random = Math.floor(Math.random() * (+max - +min)) + +min;
-        res.json(final[random]);
-    }
-    else {
-        var min = 0;
-        var max = adCollection.length - 1;
-        var random = Math.floor(Math.random() * (+max - +min)) + +min;
-        res.json(adCollection[random]);
+        else {
+            var min = 0;
+            var max = adCollection.length - 1;
+            var random = Math.floor(Math.random() * (+max - +min)) + +min;
+            res.json(adCollection[random]);
+        }
+    } catch (ex) {
+        console.log(ex);
+        res.sendStatus(400);
     }
 
 });
@@ -208,6 +214,79 @@ router.post('/getStats', async (req, res) => {
     } catch (ex) {
         console.log(ex);
         res.json(ex);
+    }
+});
+
+router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (req, res) => {
+    try {
+        var payload = req.user.payload;
+        var userMetamaskAddress = payload.publicAddress.slice(2);
+        if (req.body.adId && req.body.vId && userMetamaskAddress) {
+            var ad = await node.callAPI("assets/search", {
+                assetName: 'Ads',
+                uniqueIdentifier: req.body.adId,
+                status: "open",
+            });
+            if (ad.length == 0) {
+                throw { message: "Ad not found => " + req.body.adId };
+            }
+            var views = ad[0]["views"] ? ad[0].views + 1 : 1;
+
+            await node.callAPI('assets/updateAssetInfo', {
+                assetName: 'Ads',
+                fromAccount: node.getWeb3().eth.accounts[0],
+                identifier: ad[0].uniqueIdentifier,
+                public: {
+                    views: views
+                }
+            });
+
+            var video = await node.callAPI("assets/search", {
+                assetName: 'Videos',
+                uniqueIdentifier: req.body.vId,
+                status: "open",
+            });
+            if (video.length == 0) {
+                throw { message: "Video not found => " + req.body.vId };
+            }
+            var earning = video[0]["earning"] ? video[0].earning + (ad[0].costPerView * 0.3) : (ad[0].costPerView * 0.3);
+
+            await node.callAPI('assets/updateAssetInfo', {
+                assetName: 'Videos',
+                fromAccount: node.getWeb3().eth.accounts[0],
+                identifier: video[0].uniqueIdentifier,
+                public: {
+                    earning: earning
+                }
+            });
+
+            var user = await node.callAPI("assets/search", {
+                assetName: 'Users',
+                uniqueIdentifier: userMetamaskAddress,
+                status: "open",
+            });
+            if (user.length == 0) {
+                throw { message: "user not found => " + userMetamaskAddress };
+            }
+            var userEarning = user[0]["earning"] ? user[0].earning + (ad[0].costPerView * 0.7) : (ad[0].costPerView * 0.7);
+
+            await node.callAPI('assets/updateAssetInfo', {
+                assetName: 'Videos',
+                fromAccount: node.getWeb3().eth.accounts[0],
+                identifier: video[0].uniqueIdentifier,
+                public: {
+                    earning: userEarning
+                }
+            });
+
+            res.sendStatus(200);
+        } else {
+            throw { message: "Required parameters missing!" };
+        }
+    }
+    catch (ex) {
+        console.log(ex);
+        res.sendStatus(400);
     }
 });
 

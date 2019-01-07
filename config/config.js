@@ -1,7 +1,7 @@
 var config = {
     BLOCKCLUSTER: {
         locationDomain: "app-ap-south-1b.blockcluster.io",
-        instanceId: 'qrdcrigi'
+        instanceId: 'paypapic'
     },
     AWS: {
         aws_access_key_id: "AKIAICV5P2PGKZ2JF26Q",

@@ -4,6 +4,30 @@ const config = require('../config/config');
 const Blockcluster = require('blockcluster');
 const shortid = require("shortid");
 const express_jwt = require('express-jwt');
+let jwt = require('jsonwebtoken');
+
+let checkToken = async (req) => {
+    try {
+        let token = req.headers['x-access-token'] || req.headers['authorization']; // Express headers are auto converted to lowercase
+        if (token.startsWith('Bearer ')) {
+            // Remove Bearer from string
+            token = token.slice(7, token.length);
+        }
+
+        if (token) {
+            var op = await jwt.verify(token, config.JWTSecret.secret);
+            if (!op.payload) {
+                return { success: false };
+            } else {
+                return { success: true, payload: op.payload };
+            }
+        } else {
+            return { success: false };
+        }
+    } catch (ex) {
+        return { success: false };
+    }
+};
 
 const node = new Blockcluster.Dynamo({
     locationDomain: config.BLOCKCLUSTER.locationDomain, //enter your node's location domain
@@ -115,35 +139,42 @@ router.post('/publish', express_jwt({ secret: config.JWTSecret.secret }), async 
     }
 });
 
-router.get('/banner', express_jwt({ secret: config.JWTSecret.secret }), async (req, res) => {
+router.get('/banner', async (req, res) => {
     try {
-        var payload = req.user.payload;
-        var userMetamaskAddress = payload.publicAddress.slice(2);
-
-        var user = await node.callAPI('assets/search', {
-            $query: {
-                assetName: 'Users',
-                uniqueIdentifier: userMetamaskAddress,
-                status: "open",
-            }
-        });
-
-        var adCollection = ads;
-
-        if (user.length > 0) {
-            var filteredAds = ApplyFilter(adCollection, user);
-
-            var final = filteredAds.length > 0 ? filteredAds : adCollection;
-            var min = 0;
-            var max = final.length - 1;
-            var random = Math.floor(Math.random() * (+max - +min)) + +min;
-            res.json(final[random]);
-        }
+        if (ads.length == 0)
+            res.sendStatus(200);
         else {
-            var min = 0;
-            var max = adCollection.length - 1;
-            var random = Math.floor(Math.random() * (+max - +min)) + +min;
-            res.json(adCollection[random]);
+            var verification = await checkToken(req);
+            var userMetamaskAddress = "";
+            var user = {};
+            if (verification.success) {
+                userMetamaskAddress = verification.payload.publicAddress.slice(2);
+                user = await node.callAPI('assets/search', {
+                    $query: {
+                        assetName: 'Users',
+                        uniqueIdentifier: userMetamaskAddress,
+                        status: "open",
+                    }
+                });
+            }
+
+            var adCollection = ads;
+
+            if (user.length > 0) {
+                var filteredAds = ApplyFilter(adCollection, user);
+
+                var final = filteredAds.length > 0 ? filteredAds : adCollection;
+                var min = 0;
+                var max = final.length - 1;
+                var random = Math.floor(Math.random() * (+max - +min)) + +min;
+                res.json(final[random]);
+            }
+            else {
+                var min = 0;
+                var max = adCollection.length - 1;
+                var random = Math.floor(Math.random() * (+max - +min)) + +min;
+                res.json(adCollection[random]);
+            }
         }
     } catch (ex) {
         console.log(ex);
@@ -166,8 +197,8 @@ router.post('/get', async (req, res) => {
     }
 });
 
-router.get('/adsStats', express_jwt({ secret: config.JWTSecret.secret }), async(req, res) => {
-    try{
+router.get('/adsStats', express_jwt({ secret: config.JWTSecret.secret }), async (req, res) => {
+    try {
         var payload = req.user.payload;
         var userMetamaskAddress = payload.publicAddress.slice(2);
         var userAds = await node.callAPI('assets/search', {
@@ -175,9 +206,9 @@ router.get('/adsStats', express_jwt({ secret: config.JWTSecret.secret }), async(
             uploader: userMetamaskAddress.toString(),
             status: "open"
         });
-        
+
         res.json(userAds);
-    }catch(ex){
+    } catch (ex) {
         console.log(ex);
         res.sendStatus(400);
     }
@@ -234,11 +265,11 @@ router.post('/getStats', async (req, res) => {
     }
 });
 
-router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (req, res) => {
+router.post('/seen', async (req, res) => {
     try {
-        var payload = req.user.payload;
-        var userMetamaskAddress = payload.publicAddress.slice(2);
-        if (req.body.adId && req.body.vId && userMetamaskAddress) {
+        var verification = await checkToken(req);
+        var userMetamaskAddress = verification.success ? verification.payload.publicAddress.slice(2) : "";
+        if (req.body.adId && req.body.vId) {
             //Update ad views
             var ad = await node.callAPI("assets/search", {
                 assetName: 'Ads',
@@ -279,25 +310,27 @@ router.post('/seen', express_jwt({ secret: config.JWTSecret.secret }), async (re
                 }
             });
 
-            //Update user earnings
-            var user = await node.callAPI("assets/search", {
-                assetName: 'Users',
-                uniqueIdentifier: userMetamaskAddress,
-                status: "open",
-            });
-            if (user.length == 0) {
-                throw { message: "user not found => " + userMetamaskAddress };
-            }
-            var userEarning = user[0]["earning"] ? user[0].earning + (ad[0].costPerView * 0.7) : (ad[0].costPerView * 0.7);
-
-            await node.callAPI('assets/updateAssetInfo', {
-                assetName: 'Users',
-                fromAccount: node.getWeb3().eth.accounts[0],
-                identifier: userMetamaskAddress,
-                public: {
-                    earning: userEarning
+            if (userMetamaskAddress) {
+                //Update user earnings
+                var user = await node.callAPI("assets/search", {
+                    assetName: 'Users',
+                    uniqueIdentifier: userMetamaskAddress,
+                    status: "open",
+                });
+                if (user.length == 0) {
+                    throw { message: "user not found => " + userMetamaskAddress };
                 }
-            });
+                var userEarning = user[0]["earning"] ? user[0].earning + (ad[0].costPerView * 0.7) : (ad[0].costPerView * 0.7);
+
+                await node.callAPI('assets/updateAssetInfo', {
+                    assetName: 'Users',
+                    fromAccount: node.getWeb3().eth.accounts[0],
+                    identifier: userMetamaskAddress,
+                    public: {
+                        earning: userEarning
+                    }
+                });
+            }
 
             res.sendStatus(200);
         } else {

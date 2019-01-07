@@ -25,6 +25,15 @@ app.use(function(req, res, next) {
     next();
 });
 
+app.use(function(err, req, res, next) {
+    if(err.name === 'UnauthorizedError') {
+      res.status(err.status).send({message:err.message});
+      console.log(err);
+      return;
+    }
+ next();
+});
+
 app.listen(port,function(){
 	console.log("Listening to port " + port);
 });

@@ -124,7 +124,6 @@ router.post('/get', async (req, res) => {
         if (allVids.length > 0) {
             video = allVids;
         } else {
-            console.log("cc")
             video = await node.callAPI('assets/search', {
                 $query: {
                     assetName: "Videos",

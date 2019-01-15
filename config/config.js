@@ -9,7 +9,10 @@ var config = {
     },
     JWTSecret: {
         secret: "asdfgh",
-    }
+    },
+    DB: {
+        connectionString: "mongodb://localhost/frontrow",
+    },
 };
 
 module.exports = config;

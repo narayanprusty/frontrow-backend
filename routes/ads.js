@@ -166,13 +166,13 @@ router.get('/banner', async (req, res) => {
                 var final = filteredAds.length > 0 ? filteredAds : adCollection;
                 var min = 0;
                 var max = final.length - 1;
-                var random = Math.floor(Math.random() * (+max - +min)) + +min;
+                var random = Math.round(Math.random() * max * 10000) % (max + 1)
                 res.json(final[random]);
             }
             else {
                 var min = 0;
                 var max = adCollection.length - 1;
-                var random = Math.floor(Math.random() * (+max - +min)) + +min;
+                var random = Math.round(Math.random() * max * 10000) % (max + 1)
                 res.json(adCollection[random]);
             }
         }

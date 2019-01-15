@@ -300,13 +300,15 @@ router.post('/seen', async (req, res) => {
                 throw { message: "Video not found => " + req.body.vId };
             }
             var earning = video[0]["earning"] ? video[0].earning + (ad[0].costPerView * 0.3) : (ad[0].costPerView * 0.3);
+            var adsPopped = video[0]["adsPopped"] ? video[0]["adsPopped"] + 1 : 1;
 
             await node.callAPI('assets/updateAssetInfo', {
                 assetName: 'Videos',
                 fromAccount: node.getWeb3().eth.accounts[0],
                 identifier: video[0].uniqueIdentifier,
                 public: {
-                    earning: earning
+                    earning: earning,
+                    adsPopped: adsPopped
                 }
             });
 
@@ -321,13 +323,15 @@ router.post('/seen', async (req, res) => {
                     throw { message: "user not found => " + userMetamaskAddress };
                 }
                 var userEarning = user[0]["earning"] ? user[0].earning + (ad[0].costPerView * 0.7) : (ad[0].costPerView * 0.7);
+                var adsSeen = user[0]["adsSeen"] ? user[0]["adsSeen"] + 1 : 1;
 
                 await node.callAPI('assets/updateAssetInfo', {
                     assetName: 'Users',
                     fromAccount: node.getWeb3().eth.accounts[0],
                     identifier: userMetamaskAddress,
                     public: {
-                        earning: userEarning
+                        earning: userEarning,
+                        adsSeen: adsSeen
                     }
                 });
             }

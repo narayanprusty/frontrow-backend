@@ -5,6 +5,7 @@ const Blockcluster = require('blockcluster');
 const express_jwt = require('express-jwt');
 const shortid = require("shortid");
 const config = require('../config/config');
+const videoController = require('../controller/videos');
 
 const node = new Blockcluster.Dynamo({
     locationDomain: config.BLOCKCLUSTER.locationDomain, //enter your node's location domain
@@ -76,13 +77,26 @@ router.post('/get/:publicAddress', async (req, res) => {
 
         var publicAddress = req.params.publicAddress
 
-        console.log("add: " + publicAddress.slice(2).toString())
+        console.log("Get profile info: " + publicAddress.slice(2).toString())
 
         const users = await node.callAPI('assets/search', {
             assetName: "Users",
             uniqueIdentifier: publicAddress.slice(2),
             status: "open",
         });
+
+        let vids = videoController.getVideos();
+        let videoEarnings = 0;
+        let adsPopped = 0;
+        for (let i = 0; i < vids.length; i++) {
+            if (vids[i].uploader && vids[i].uploader == publicAddress.slice(2).toString()) {
+                videoEarnings += vids[i].earning;
+                adsPopped += vids[i].adsPopped ? vids[i].adsPopped : 0;
+            }
+        }
+        users[0]["videoEarnings"] = videoEarnings;
+        users[0]["adsSeen"] = users[0]["adsSeen"] ? users[0]["adsSeen"] : 0;
+        users[0]["adsPopped"] = adsPopped;
 
         console.log("User: " + users[0])
         res.send({ data: users, success: true })

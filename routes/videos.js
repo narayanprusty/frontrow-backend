@@ -5,44 +5,12 @@ const Blockcluster = require('blockcluster');
 const express_jwt = require('express-jwt');
 const shortid = require("shortid");
 const config = require('../config/config');
+const videoController = require('../controller/videos');
 
 const node = new Blockcluster.Dynamo({
     locationDomain: config.BLOCKCLUSTER.locationDomain, //enter your node's location domain
     instanceId: config.BLOCKCLUSTER.instanceId
 });
-
-var videos = [];
-
-let interval = 20000;
-
-setInterval(async function () {
-    try {
-        console.log("Caching Videos!")
-        const video = await node.callAPI('assets/search', {
-            $query: {
-                assetName: "Videos",
-                status: "open",
-                show: true,
-            },
-            $sort: {
-                publishedOn: -1
-            }
-        });
-
-        for (var i = 0; i < video.length; i++) {
-            var user = await node.callAPI('assets/search', {
-                assetName: "Users",
-                uniqueIdentifier: video[i].uploader
-            });
-            if (user.length > 0) {
-                video[i]["username"] = user[0].username;
-            }
-        }
-        videos = video;
-    } catch (ex) {
-        console.log(ex);
-    }
-}, interval);
 
 router.post('/add', async (req, res) => {
     let video_id = shortid.generate();
@@ -85,7 +53,7 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
             });
 
             video["username"] = user.username;
-            videos.push(video);
+            videoController.pushNewVideo(video);
             res.send({ success: true })
         }
         else {
@@ -119,7 +87,7 @@ router.post('/view/update', async (req, res) => {
 
 router.post('/get', async (req, res) => {
     try {
-        const allVids = videos;
+        const allVids = videoController.getVideos();
         var video = [];
         if (allVids.length > 0) {
             video = allVids;
@@ -146,7 +114,7 @@ router.post('/get', async (req, res) => {
             }
         }
 
-        videos = video;
+        videoController.cacheVideos(video);
 
         res.send({ data: video, success: true })
     } catch (ex) {

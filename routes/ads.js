@@ -124,7 +124,7 @@ router.post('/publish', express_jwt({ secret: config.JWTSecret.secret }), async 
             fromAccount: node.getWeb3().eth.accounts[0],
             identifier: ads_id,
             public: {
-                costPerView: req.body.costPerView, //how much advertiser pays per view
+                //costPerView: req.body.costPerView, //how much advertiser pays per view
                 filter: req.body.filter,
                 bannerUrl: req.body.bannerUrl,
                 views: 0,
@@ -161,7 +161,9 @@ router.get('/banner', async (req, res) => {
             var adCollection = ads;
 
             if (user.length > 0) {
+                console.log(adCollection, user)
                 var filteredAds = ApplyFilter(adCollection, user);
+                console.log(filteredAds)
 
                 var final = filteredAds.length > 0 ? filteredAds : adCollection;
                 var min = 0;
@@ -291,6 +293,7 @@ router.post('/seen', async (req, res) => {
             });
 
             //Update video earnings
+            /*
             var video = await node.callAPI("assets/search", {
                 assetName: 'Videos',
                 uniqueIdentifier: req.body.vId,
@@ -334,7 +337,7 @@ router.post('/seen', async (req, res) => {
                         adsSeen: adsSeen
                     }
                 });
-            }
+            }*/
 
             res.sendStatus(200);
         } else {

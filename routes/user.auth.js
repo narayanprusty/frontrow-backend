@@ -85,6 +85,7 @@ router.post('/get/:publicAddress', async (req, res) => {
             status: "open",
         });
 
+        /*
         let vids = videoController.getVideos();
         let videoEarnings = 0;
         let adsPopped = 0;
@@ -97,8 +98,9 @@ router.post('/get/:publicAddress', async (req, res) => {
         users[0]["videoEarnings"] = videoEarnings;
         users[0]["adsSeen"] = users[0]["adsSeen"] ? users[0]["adsSeen"] : 0;
         users[0]["adsPopped"] = adsPopped;
+        */
 
-        console.log("User: " + users[0])
+        console.log("User: " + users[0], " Address: " + publicAddress)
         res.send({ data: users, success: true })
     } catch (e) {
         console.error(e);

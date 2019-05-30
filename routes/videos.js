@@ -33,6 +33,8 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
     try {
         let video_id = req.body.id;
 
+        console.log(req.body)
+
         var user = await db.User_Details.findOne({ publicAddress: req.user.payload.publicAddress });
 
         if (user) {
@@ -47,6 +49,9 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                     uploader: user.publicAddress.slice(2), //user metamask id,
                     title: req.body.title,
                     video: req.body.videoURL,
+                    language: req.body.language,
+                    category: req.body.category,
+                    videoType: req.body.videoType,
                     publishedOn: (Date.now()).toString(),
                     show: true
                 }

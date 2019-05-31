@@ -128,6 +128,8 @@ router.post('/publish', express_jwt({ secret: config.JWTSecret.secret }), async 
                 filter: req.body.filter,
                 bannerUrl: req.body.bannerUrl,
                 views: 0,
+                name: req.body.name,
+                redirectURL: req.body.redirectURL,
                 uploader: userMetamaskAddress.slice(2) //user metamask id
             }
         });

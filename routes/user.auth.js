@@ -5,7 +5,6 @@ const Blockcluster = require('blockcluster');
 const express_jwt = require('express-jwt');
 const shortid = require("shortid");
 const config = require('../config/config');
-const videoController = require('../controller/videos');
 
 const node = new Blockcluster.Dynamo({
     locationDomain: config.BLOCKCLUSTER.locationDomain, //enter your node's location domain

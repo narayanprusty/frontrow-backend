@@ -5,7 +5,6 @@ const Blockcluster = require('blockcluster');
 const express_jwt = require('express-jwt');
 const shortid = require("shortid");
 const config = require('../config/config');
-const videoController = require('../controller/videos');
 
 const node = new Blockcluster.Dynamo({
     locationDomain: config.BLOCKCLUSTER.locationDomain, //enter your node's location domain
@@ -52,13 +51,11 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                     language: req.body.language,
                     category: req.body.category,
                     videoType: req.body.videoType,
-                    publishedOn: (Date.now()).toString(),
-                    show: true
+                    publishedOn: (Date.now()).toString()
                 }
             });
 
             video["username"] = user.username;
-            videoController.pushNewVideo(video);
             res.send({ success: true })
         }
         else {
@@ -92,36 +89,42 @@ router.post('/view/update', async (req, res) => {
 
 router.post('/get', async (req, res) => {
     try {
-        const allVids = videoController.getVideos();
-        var video = [];
-        if (allVids.length > 0) {
-            video = allVids;
-        } else {
-            video = await node.callAPI('assets/search', {
-                $query: {
-                    assetName: "Videos",
-                    status: "open",
-                    show: true,
-                },
-                $sort: {
-                    publishedOn: -1
-                }
-            });
+        let searchInput = {
+            $query: {
+                assetName: "Videos",
+                status: "open",
+                language: req.body.language,
+                category: req.body.category
+            },
+            $sort: {
+                publishedOn: -1
+            },
+            $skip: req.body.skip,
+            $limit: 12
+        }
 
-            for (var i = 0; i < video.length; i++) {
-                var user = await node.callAPI('assets/search', {
-                    assetName: "Users",
-                    uniqueIdentifier: video[i].uploader
-                });
-                if (user.length > 0) {
-                    video[i]["username"] = user[0].username;
-                }
+        if(req.body.search) {
+            searchInput.$query.$text = {$search:req.body.search}
+        }
+
+        video = await node.callAPI('assets/search', searchInput);
+
+        for (var i = 0; i < video.length; i++) {
+            var user = await node.callAPI('assets/search', {
+                assetName: "Users",
+                uniqueIdentifier: video[i].uploader
+            });
+            if (user.length > 0) {
+                video[i]["username"] = user[0].username;
             }
         }
 
-        videoController.cacheVideos(video);
+        delete searchInput.$skip;
+        delete searchInput.$limit;
 
-        res.send({ data: video, success: true })
+        let count = await node.callAPI('assets/count', searchInput);
+
+        res.send({ data: video, success: true, count })
     } catch (ex) {
         console.log(ex);
         res.json(ex);

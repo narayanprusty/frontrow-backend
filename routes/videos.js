@@ -109,7 +109,7 @@ router.post('/get', async (req, res) => {
 
         video = await node.callAPI('assets/search', searchInput);
 
-        for (var i = 0; i < video.length; i++) {
+        /*for (var i = 0; i < video.length; i++) {
             var user = await node.callAPI('assets/search', {
                 assetName: "Users",
                 uniqueIdentifier: video[i].uploader
@@ -117,7 +117,7 @@ router.post('/get', async (req, res) => {
             if (user.length > 0) {
                 video[i]["username"] = user[0].username;
             }
-        }
+        }*/
 
         delete searchInput.$skip;
         delete searchInput.$limit;

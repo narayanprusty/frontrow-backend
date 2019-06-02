@@ -94,7 +94,8 @@ router.post('/get', async (req, res) => {
                 assetName: "Videos",
                 status: "open",
                 language: req.body.language,
-                category: req.body.category
+                category: req.body.category,
+                $or: []
             },
             $sort: {
                 publishedOn: -1
@@ -102,6 +103,12 @@ router.post('/get', async (req, res) => {
             $skip: req.body.skip,
             $limit: 12
         }
+
+        req.body.videoType.forEach((type) => {
+            searchInput.$query.$or.push({
+                videoType: type
+            })
+        })
 
         if(req.body.search) {
             searchInput.$query.$text = {$search:req.body.search}

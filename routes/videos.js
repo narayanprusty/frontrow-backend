@@ -127,7 +127,8 @@ router.post('/get', async (req, res) => {
         }*/
 
         delete searchInput.$skip;
-        delete searchInput.$limit;
+
+        searchInput.$limit = 1000000000
 
         let count = await node.callAPI('assets/count', searchInput);
 

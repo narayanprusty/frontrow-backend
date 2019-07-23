@@ -9,7 +9,6 @@ const app = express();
 const config = require('./config/config');
 const port = 7000;
 
-
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));

@@ -47,10 +47,11 @@ router.post('/update', express_jwt({ secret: config.JWTSecret.secret }), async (
                     imageURL: req.body.imageURL,
                     uploader: user.publicAddress.slice(2), //user metamask id,
                     title: req.body.title,
-                    video: req.body.videoURL,
-                    language: req.body.language,
-                    category: req.body.category,
                     videoType: req.body.videoType,
+                    video: req.body.videoURL,
+                    main_category: req.body.main_category,
+                    sub_category: req.body.sub_category,
+                    language: req.body.language,
                     publishedOn: (Date.now()).toString()
                 }
             });
@@ -94,7 +95,8 @@ router.post('/get', async (req, res) => {
                 assetName: "Videos",
                 status: "open",
                 language: req.body.language,
-                category: req.body.category,
+                main_category: req.body.main_category,
+                sub_category: req.body.sub_category,
                 $or: []
             },
             $sort: {

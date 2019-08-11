@@ -122,6 +122,14 @@ router.post('/get', async (req, res) => {
             searchInput.$query.$text = {$search:req.body.search}
         }
 
+        if(req.body.uniqueIdentifierList) {
+            searchInput.$query.uniqueIdentifier = {
+                $nin: req.body.uniqueIdentifierList
+            }
+        }
+
+        console.log(searchInput)
+
         video = await node.callAPI('assets/search', searchInput);
 
         /*for (var i = 0; i < video.length; i++) {

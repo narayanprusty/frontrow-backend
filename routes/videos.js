@@ -162,6 +162,7 @@ router.post('/get/:vid', async (req, res) => {
         console.log(vid);
         const video = await node.callAPI('assets/search', {
             assetName: "Videos",
+            status: "open",
             uniqueIdentifier: vid.toString()
         });
 

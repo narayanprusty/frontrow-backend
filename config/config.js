@@ -1,7 +1,7 @@
 var config = {
     BLOCKCLUSTER: {
         locationDomain: "app-ap-south-1b.blockcluster.io",
-        instanceId: process.env.BC_INSTANCE_ID || 'aqsbhjegbr'
+        instanceId: process.env.BC_INSTANCE_ID || 'hwpahbkiem'
     },
     JWTSecret: {
         secret: "asdfgh",

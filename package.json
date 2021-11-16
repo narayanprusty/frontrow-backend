@@ -8,7 +8,7 @@
   "author": "Narayan Prusty",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.363.0",
+    "aws-sdk": "^2.814.0",
     "blockcluster": "^1.0.3",
     "body-parser": "^1.18.3",
     "cors": "^2.8.4",
